@@ -37,11 +37,25 @@ const seen = new Map();
 
 const CACHE_URL = new URL('./station-names.json', import.meta.url);
 const OVERRIDES = { 8600736: 'Flintholm' };
+const NØRREBRO = '8600642';
+const KBH_SYD = '8600783';
+
+let F_LINE_ORDER = [];
 const names = new Map();
 try {
   const raw = await readFile(CACHE_URL, 'utf-8');
-  for (const [k, v] of Object.entries(JSON.parse(raw))) names.set(k, v);
+  const { order = [], names: cachedNames = {} } = JSON.parse(raw);
+  F_LINE_ORDER = order;
+  for (const [k, v] of Object.entries(cachedNames)) names.set(k, v);
 } catch {}
+
+function journeyDirection(calls) {
+  const indices = calls
+    .map((c) => F_LINE_ORDER.indexOf(String(c.StopPointRef)))
+    .filter((i) => i >= 0);
+  if (indices.length < 2) return null;
+  return indices[indices.length - 1] > indices[0] ? 'north' : 'south';
+}
 
 async function stationName(id) {
   if (OVERRIDES[id]) return OVERRIDES[id];
@@ -62,7 +76,10 @@ async function stationName(id) {
   } catch {}
   names.set(key, name);
   try {
-    await writeFile(CACHE_URL, JSON.stringify(Object.fromEntries(names), null, 2));
+    await writeFile(
+      CACHE_URL,
+      JSON.stringify({ order: F_LINE_ORDER, names: Object.fromEntries(names) }, null, 2),
+    );
   } catch {}
   return name || key;
 }
@@ -120,8 +137,13 @@ async function handleMessage(msg) {
   const enqueued = fmtTime(msg.enqueuedTimeUtc?.toISOString());
 
   for (const j of journeys) {
+    const calls = asArray(j.EstimatedCalls?.EstimatedCall);
+    const dir = journeyDirection(calls);
+    if (!dir) continue;
+    const targetId = dir === 'south' ? NØRREBRO : KBH_SYD;
     const train = String(j.TrainNumbers?.TrainNumberRef ?? '?').padStart(6);
-    for (const c of asArray(j.EstimatedCalls?.EstimatedCall)) {
+    for (const c of calls) {
+      if (String(c.StopPointRef) !== targetId) continue;
       const aimedIso = c.AimedArrivalTime ?? c.AimedDepartureTime;
       const expIso = c.ExpectedArrivalTime ?? c.ExpectedDepartureTime;
       const state = expIso ?? aimedIso ?? '';
