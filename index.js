@@ -37,6 +37,32 @@ const seen = new Map();
 
 const CACHE_URL = new URL('./station-names.json', import.meta.url);
 const OVERRIDES = { 8600736: 'Flintholm' };
+
+// F-line stops in geographic order, København Syd → Hellerup
+const F_LINE_ORDER = [
+  '8600783', // København Syd
+  '8600804', // Vigerslev Allé
+  '8600742', // Danshøj
+  '8600741', // Ålholm
+  '8600740', // KB Hallen
+  '8600736', // Flintholm
+  '8600641', // Grøndal
+  '8600640', // Fuglebakken
+  '8600642', // Nørrebro
+  '8600739', // Bispebjerg
+  '8600644', // Ryparken
+  '8600655', // Hellerup
+];
+const NØRREBRO = '8600642';
+const KBH_SYD = '8600783';
+
+function journeyDirection(calls) {
+  const indices = calls
+    .map((c) => F_LINE_ORDER.indexOf(String(c.StopPointRef)))
+    .filter((i) => i >= 0);
+  if (indices.length < 2) return null;
+  return indices[indices.length - 1] > indices[0] ? 'north' : 'south';
+}
 const names = new Map();
 try {
   const raw = await readFile(CACHE_URL, 'utf-8');
@@ -120,8 +146,13 @@ async function handleMessage(msg) {
   const enqueued = fmtTime(msg.enqueuedTimeUtc?.toISOString());
 
   for (const j of journeys) {
+    const calls = asArray(j.EstimatedCalls?.EstimatedCall);
+    const dir = journeyDirection(calls);
+    if (!dir) continue;
+    const targetId = dir === 'south' ? NØRREBRO : KBH_SYD;
     const train = String(j.TrainNumbers?.TrainNumberRef ?? '?').padStart(6);
-    for (const c of asArray(j.EstimatedCalls?.EstimatedCall)) {
+    for (const c of calls) {
+      if (String(c.StopPointRef) !== targetId) continue;
       const aimedIso = c.AimedArrivalTime ?? c.AimedDepartureTime;
       const expIso = c.ExpectedArrivalTime ?? c.ExpectedDepartureTime;
       const state = expIso ?? aimedIso ?? '';
