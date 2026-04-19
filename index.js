@@ -1,3 +1,4 @@
+import { readFile, writeFile } from 'node:fs/promises';
 import { ClientSecretCredential } from '@azure/identity';
 import { ServiceBusClient } from '@azure/service-bus';
 import { XMLParser } from 'fast-xml-parser';
@@ -31,6 +32,41 @@ const xmlParser = new XMLParser({
   trimValues: true,
 });
 
+const SAMPLE = process.env.SAMPLE === '1';
+const seen = new Map();
+
+const CACHE_URL = new URL('./station-names.json', import.meta.url);
+const OVERRIDES = { 8600736: 'Flintholm' };
+const names = new Map();
+try {
+  const raw = await readFile(CACHE_URL, 'utf-8');
+  for (const [k, v] of Object.entries(JSON.parse(raw))) names.set(k, v);
+} catch {}
+
+async function stationName(id) {
+  if (OVERRIDES[id]) return OVERRIDES[id];
+  const key = String(id);
+  if (names.has(key)) return names.get(key) || key;
+  const query = `SELECT ?l WHERE { ?s wdt:P722 "${key}" . ?s rdfs:label ?l . FILTER(LANG(?l) = "da") } LIMIT 1`;
+  const url = `https://query.wikidata.org/sparql?query=${encodeURIComponent(query)}`;
+  let name = '';
+  try {
+    const res = await fetch(url, {
+      headers: { Accept: 'application/sparql-results+json', 'User-Agent': 'tognu-train-demo/0.1' },
+    });
+    if (res.ok) {
+      const data = await res.json();
+      const label = data?.results?.bindings?.[0]?.l?.value;
+      if (label) name = label.replace(/\s+Station$/, '');
+    }
+  } catch {}
+  names.set(key, name);
+  try {
+    await writeFile(CACHE_URL, JSON.stringify(Object.fromEntries(names), null, 2));
+  } catch {}
+  return name || key;
+}
+
 function asArray(x) {
   if (x == null) return [];
   return Array.isArray(x) ? x : [x];
@@ -53,7 +89,7 @@ function delayMin(aimedIso, expectedIso) {
 /**
  * @param {import('@azure/service-bus').ServiceBusReceivedMessage} msg
  */
-function handleMessage(msg) {
+async function handleMessage(msg) {
   const raw = msg.body;
   const body =
     typeof raw === 'string'
@@ -76,6 +112,11 @@ function handleMessage(msg) {
 
   if (journeys.length === 0) return;
 
+  if (SAMPLE) {
+    console.log(JSON.stringify(journeys[0], null, 2));
+    process.exit(0);
+  }
+
   const enqueued = fmtTime(msg.enqueuedTimeUtc?.toISOString());
 
   for (const j of journeys) {
@@ -83,10 +124,15 @@ function handleMessage(msg) {
     for (const c of asArray(j.EstimatedCalls?.EstimatedCall)) {
       const aimedIso = c.AimedArrivalTime ?? c.AimedDepartureTime;
       const expIso = c.ExpectedArrivalTime ?? c.ExpectedDepartureTime;
+      const state = expIso ?? aimedIso ?? '';
+      const key = `${train}:${c.StopPointRef}`;
+      if (seen.get(key) === state) continue;
+      seen.set(key, state);
       const d = delayMin(aimedIso, expIso);
       const delayStr = d === 0 ? '' : `  ${d > 0 ? '+' : ''}${d}m`;
+      const stop = (await stationName(c.StopPointRef)).padEnd(15);
       console.log(
-        `${enqueued}  F ${train}  →  ${c.StopPointRef}  ${fmtTime(aimedIso)}${delayStr}`,
+        `${enqueued}  F ${train}  →  ${stop}  ${fmtTime(aimedIso)}${delayStr}`,
       );
     }
   }
