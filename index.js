@@ -39,6 +39,7 @@ const CACHE_URL = new URL('./station-names.json', import.meta.url);
 const OVERRIDES = { 8600736: 'Flintholm' };
 const NØRREBRO = '8600642';
 const KBH_SYD = '8600783';
+const HELLERUP = '8600655';
 
 let F_LINE_ORDER = [];
 const names = new Map();
@@ -140,10 +141,10 @@ async function handleMessage(msg) {
     const calls = asArray(j.EstimatedCalls?.EstimatedCall);
     const dir = journeyDirection(calls);
     if (!dir) continue;
-    const targetId = dir === 'south' ? NØRREBRO : KBH_SYD;
     const train = String(j.TrainNumbers?.TrainNumberRef ?? '?').padStart(6);
     for (const c of calls) {
-      if (String(c.StopPointRef) !== targetId) continue;
+      const stopId = String(c.StopPointRef);
+      if (stopId !== NØRREBRO && !(stopId === KBH_SYD && dir === 'north')) continue;
       const aimedIso = c.AimedArrivalTime ?? c.AimedDepartureTime;
       const expIso = c.ExpectedArrivalTime ?? c.ExpectedDepartureTime;
       const state = expIso ?? aimedIso ?? '';
@@ -152,7 +153,12 @@ async function handleMessage(msg) {
       seen.set(key, state);
       const d = delayMin(aimedIso, expIso);
       const delayStr = d === 0 ? '' : `  ${d > 0 ? '+' : ''}${d}m`;
-      const stop = (await stationName(c.StopPointRef)).padEnd(15);
+      const stopName = await stationName(c.StopPointRef);
+      const display =
+        stopId === NØRREBRO
+          ? `${stopName} → ${await stationName(dir === 'north' ? HELLERUP : KBH_SYD)}`
+          : stopName;
+      const stop = display.padEnd(25);
       console.log(
         `${enqueued}  F ${train}  →  ${stop}  ${fmtTime(aimedIso)}${delayStr}`,
       );
