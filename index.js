@@ -31,6 +31,25 @@ const xmlParser = new XMLParser({
   trimValues: true,
 });
 
+function asArray(x) {
+  if (x == null) return [];
+  return Array.isArray(x) ? x : [x];
+}
+
+function fmtTime(iso) {
+  if (!iso) return '';
+  return new Date(iso).toLocaleTimeString('da-DK', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  });
+}
+
+function delayMin(aimedIso, expectedIso) {
+  if (!aimedIso || !expectedIso) return 0;
+  return Math.round((new Date(expectedIso) - new Date(aimedIso)) / 60000);
+}
+
 /**
  * @param {import('@azure/service-bus').ServiceBusReceivedMessage} msg
  */
@@ -43,18 +62,33 @@ function handleMessage(msg) {
         ? Buffer.from(raw).toString('utf-8')
         : String(raw);
 
-  console.log('─'.repeat(80));
-  console.log(`messageId:   ${msg.messageId ?? ''}`);
-  console.log(`enqueuedAt:  ${msg.enqueuedTimeUtc?.toISOString() ?? ''}`);
-  console.log(`subject:     ${msg.subject ?? ''}`);
-  console.log(`contentType: ${msg.contentType ?? ''}`);
-
+  let parsed;
   try {
-    const parsed = xmlParser.parse(body);
-    console.log(JSON.stringify(parsed, null, 2));
-  } catch (err) {
-    console.log('(failed to parse XML; showing raw body)');
-    console.log(body);
+    parsed = xmlParser.parse(body);
+  } catch {
+    return;
+  }
+
+  const journeys = asArray(
+    parsed?.Siri?.ServiceDelivery?.EstimatedTimetableDelivery
+      ?.EstimatedJourneyVersionFrame?.EstimatedVehicleJourney,
+  ).filter((j) => j.LineRef === 'F');
+
+  if (journeys.length === 0) return;
+
+  const enqueued = fmtTime(msg.enqueuedTimeUtc?.toISOString());
+
+  for (const j of journeys) {
+    const train = String(j.TrainNumbers?.TrainNumberRef ?? '?').padStart(6);
+    for (const c of asArray(j.EstimatedCalls?.EstimatedCall)) {
+      const aimedIso = c.AimedArrivalTime ?? c.AimedDepartureTime;
+      const expIso = c.ExpectedArrivalTime ?? c.ExpectedDepartureTime;
+      const d = delayMin(aimedIso, expIso);
+      const delayStr = d === 0 ? '' : `  ${d > 0 ? '+' : ''}${d}m`;
+      console.log(
+        `${enqueued}  F ${train}  →  ${c.StopPointRef}  ${fmtTime(aimedIso)}${delayStr}`,
+      );
+    }
   }
 }
 
