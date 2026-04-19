@@ -1,4 +1,3 @@
-import 'dotenv/config';
 import { ClientSecretCredential } from '@azure/identity';
 import { ServiceBusClient } from '@azure/service-bus';
 import { XMLParser } from 'fast-xml-parser';
