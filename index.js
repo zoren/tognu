@@ -37,24 +37,17 @@ const seen = new Map();
 
 const CACHE_URL = new URL('./station-names.json', import.meta.url);
 const OVERRIDES = { 8600736: 'Flintholm' };
-
-// F-line stops in geographic order, København Syd → Hellerup
-const F_LINE_ORDER = [
-  '8600783', // København Syd
-  '8600804', // Vigerslev Allé
-  '8600742', // Danshøj
-  '8600741', // Ålholm
-  '8600740', // KB Hallen
-  '8600736', // Flintholm
-  '8600641', // Grøndal
-  '8600640', // Fuglebakken
-  '8600642', // Nørrebro
-  '8600739', // Bispebjerg
-  '8600644', // Ryparken
-  '8600655', // Hellerup
-];
 const NØRREBRO = '8600642';
 const KBH_SYD = '8600783';
+
+let F_LINE_ORDER = [];
+const names = new Map();
+try {
+  const raw = await readFile(CACHE_URL, 'utf-8');
+  const { order = [], names: cachedNames = {} } = JSON.parse(raw);
+  F_LINE_ORDER = order;
+  for (const [k, v] of Object.entries(cachedNames)) names.set(k, v);
+} catch {}
 
 function journeyDirection(calls) {
   const indices = calls
@@ -63,11 +56,6 @@ function journeyDirection(calls) {
   if (indices.length < 2) return null;
   return indices[indices.length - 1] > indices[0] ? 'north' : 'south';
 }
-const names = new Map();
-try {
-  const raw = await readFile(CACHE_URL, 'utf-8');
-  for (const [k, v] of Object.entries(JSON.parse(raw))) names.set(k, v);
-} catch {}
 
 async function stationName(id) {
   if (OVERRIDES[id]) return OVERRIDES[id];
@@ -88,7 +76,10 @@ async function stationName(id) {
   } catch {}
   names.set(key, name);
   try {
-    await writeFile(CACHE_URL, JSON.stringify(Object.fromEntries(names), null, 2));
+    await writeFile(
+      CACHE_URL,
+      JSON.stringify({ order: F_LINE_ORDER, names: Object.fromEntries(names) }, null, 2),
+    );
   } catch {}
   return name || key;
 }
