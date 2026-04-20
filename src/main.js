@@ -125,25 +125,6 @@ function renderApp() {
     { class: 'app' },
 
     el(
-      'header',
-      { class: 'top' },
-      el(
-        'button',
-        { type: 'button', class: 'back' },
-        el('span', { class: 'back-arrow' }, '←'),
-        ' Tilbage',
-      ),
-    ),
-
-    el(
-      'nav',
-      { class: 'tabs' },
-      el('div', { class: 'tab' }, 'Afgange'),
-      el('div', { class: 'tab' }, 'Ankomster'),
-      el('div', { class: 'tab active' }, 'S-tog'),
-    ),
-
-    el(
       'section',
       { class: 'station' },
       el(
