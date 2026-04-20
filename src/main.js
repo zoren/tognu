@@ -177,15 +177,6 @@ function renderApp() {
         ? el('li', { class: 'empty' }, statusText)
         : upcoming.map(renderRow),
     ),
-
-    el(
-      'footer',
-      { class: 'bottom-nav', 'aria-hidden': 'true' },
-      navItem('⌂', 'Hjem', false),
-      navItem('◎', 'Find Tog', false),
-      navItem('⚲', 'Søg Station', true),
-      navItem('⚙', 'Indstillinger', false),
-    ),
   );
 }
 
@@ -201,21 +192,6 @@ function bookmarkIcon() {
   path.setAttribute('fill', 'currentColor');
   svg.appendChild(path);
   return svg;
-}
-
-/**
- * @param {string} icon
- * @param {string} label
- * @param {boolean} active
- * @returns {HTMLElement}
- */
-function navItem(icon, label, active) {
-  return el(
-    'div',
-    { class: active ? 'nav-item active' : 'nav-item' },
-    el('span', { class: 'nav-icon' }, icon),
-    el('span', {}, label),
-  );
 }
 
 function render() {
