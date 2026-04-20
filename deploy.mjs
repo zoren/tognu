@@ -23,6 +23,6 @@ console.log(`Pushed version ${vtag} to main branch`)
 // not syncing nginx/ as it requires sudo to reload
 // rsync nginx/locations.nginx tognu@linode:app/nginx/
 
-await $`rsync package.json package-lock.json station-names.json index.js ./dist tognu@linode:app/ -r`
+await $`rsync package.json package-lock.json .nvmrc station-names.json index.js ./dist tognu@linode:app/ -r`
 
-await $`ssh tognu@linode 'source .zshrc && cd app && npm install --omit=dev && (pm2 restart tognu --update-env || pm2 start "npm start" --name tognu) && pm2 save'`
+await $`ssh tognu@linode 'source .zshrc && cd app && nvm install && npm install --omit=dev && (pm2 restart tognu --update-env || pm2 start "npm start" --name tognu) && pm2 save'`
