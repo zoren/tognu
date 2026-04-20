@@ -2,7 +2,7 @@ import { readFile, writeFile } from 'node:fs/promises';
 import { createReadStream } from 'node:fs';
 import { stat } from 'node:fs/promises';
 import { createServer } from 'node:http';
-import { extname, join, normalize, sep } from 'node:path';
+import { extname, join, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { ClientSecretCredential } from '@azure/identity';
 import { ServiceBusClient } from '@azure/service-bus';
@@ -265,7 +265,7 @@ async function serveStatic(req, res) {
   const safe = normalize(urlPath).replace(/^(\.\.(\/|\\|$))+/, '');
   const rel = safe === '/' || safe === '' ? 'index.html' : safe.replace(/^\/+/, '');
   const filePath = join(DIST_DIR, rel);
-  if (!filePath.startsWith(DIST_DIR + sep) && filePath !== join(DIST_DIR, 'index.html')) {
+  if (!filePath.startsWith(DIST_DIR)) {
     res.writeHead(403).end('Forbidden');
     return;
   }
