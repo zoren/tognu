@@ -33,7 +33,8 @@ const xmlParser = new XMLParser({
 });
 
 const SAMPLE = process.env.SAMPLE === '1';
-const seen = new Map();
+const state = new Map();
+let lastSignature = '';
 
 const CACHE_URL = new URL('./station-names.json', import.meta.url);
 const OVERRIDES = { 8600736: 'Flintholm' };
@@ -104,6 +105,48 @@ function delayMin(aimedIso, expectedIso) {
   return Math.round((new Date(expectedIso) - new Date(aimedIso)) / 60000);
 }
 
+async function render(enqueuedIso) {
+  const now = new Date();
+  const groups = [
+    { stopId: NØRREBRO, dir: 'north', dest: HELLERUP },
+    { stopId: NØRREBRO, dir: 'south', dest: KBH_SYD },
+    { stopId: KBH_SYD, dir: 'north', dest: HELLERUP },
+  ];
+  const sections = groups.map((g) => {
+    const group = state.get(`${g.stopId}:${g.dir}`);
+    if (!group) return [];
+    for (const [train, entry] of group) {
+      const t = new Date(entry.expected ?? entry.aimed);
+      if (t < now) group.delete(train);
+    }
+    return [...group.entries()]
+      .sort((a, b) => new Date(a[1].expected ?? a[1].aimed) - new Date(b[1].expected ?? b[1].aimed))
+      .slice(0, 2);
+  });
+
+  const signature = sections
+    .map((s) => s.map(([tr, e]) => `${tr}:${e.expected ?? e.aimed}`).join(','))
+    .join('|');
+  if (signature === lastSignature) return;
+  lastSignature = signature;
+
+  const enqueued = fmtTime(enqueuedIso);
+  for (let i = 0; i < groups.length; i++) {
+    const g = groups[i];
+    const stopName = await stationName(g.stopId);
+    const destName = await stationName(g.dest);
+    const stop = `${stopName} → ${destName}`.padEnd(25);
+    for (const [train, entry] of sections[i]) {
+      const d = delayMin(entry.aimed, entry.expected);
+      const delayStr = d === 0 ? '' : `  ${d > 0 ? '+' : ''}${d}m`;
+      console.log(
+        `${enqueued}  F ${train}  →  ${stop}  ${fmtTime(entry.aimed)}${delayStr}`,
+      );
+    }
+  }
+  console.log('');
+}
+
 /**
  * @param {import('@azure/service-bus').ServiceBusReceivedMessage} msg
  */
@@ -135,8 +178,6 @@ async function handleMessage(msg) {
     process.exit(0);
   }
 
-  const enqueued = fmtTime(msg.enqueuedTimeUtc?.toISOString());
-
   for (const j of journeys) {
     const calls = asArray(j.EstimatedCalls?.EstimatedCall);
     const dir = journeyDirection(calls);
@@ -145,25 +186,16 @@ async function handleMessage(msg) {
     for (const c of calls) {
       const stopId = String(c.StopPointRef);
       if (stopId !== NØRREBRO && !(stopId === KBH_SYD && dir === 'north')) continue;
-      const aimedIso = c.AimedArrivalTime ?? c.AimedDepartureTime;
-      const expIso = c.ExpectedArrivalTime ?? c.ExpectedDepartureTime;
-      const state = expIso ?? aimedIso ?? '';
-      const key = `${train}:${c.StopPointRef}`;
-      if (seen.get(key) === state) continue;
-      seen.set(key, state);
-      const d = delayMin(aimedIso, expIso);
-      const delayStr = d === 0 ? '' : `  ${d > 0 ? '+' : ''}${d}m`;
-      const stopName = await stationName(c.StopPointRef);
-      const display =
-        stopId === NØRREBRO
-          ? `${stopName} → ${await stationName(dir === 'north' ? HELLERUP : KBH_SYD)}`
-          : stopName;
-      const stop = display.padEnd(25);
-      console.log(
-        `${enqueued}  F ${train}  →  ${stop}  ${fmtTime(aimedIso)}${delayStr}`,
-      );
+      const aimed = c.AimedArrivalTime ?? c.AimedDepartureTime;
+      const expected = c.ExpectedArrivalTime ?? c.ExpectedDepartureTime;
+      const key = `${stopId}:${dir}`;
+      let group = state.get(key);
+      if (!group) { group = new Map(); state.set(key, group); }
+      group.set(train, { aimed, expected });
     }
   }
+
+  await render(msg.enqueuedTimeUtc?.toISOString());
 }
 
 console.log(
