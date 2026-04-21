@@ -45,103 +45,146 @@ button {
   flex-direction: column;
 }
 
-.station {
+.top {
   display: flex;
   align-items: center;
-  gap: 18px;
-  padding: 18px 20px;
-  background: var(--bg-alt);
-}
-
-.s-logo {
-  width: 52px;
-  height: 52px;
-  background: #111;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  clip-path: polygon(25% 0, 75% 0, 100% 50%, 75% 100%, 25% 100%, 0 50%);
-}
-
-.s-logo span {
-  color: #fff;
-  font-weight: 900;
-  font-size: 30px;
-  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-  letter-spacing: -1px;
-}
-
-.station h1 {
-  flex: 1;
-  margin: 0;
-  font-size: 26px;
-  font-weight: 700;
-  letter-spacing: -0.5px;
-}
-
-.bookmark {
-  background: transparent;
-  border: none;
-  padding: 6px;
-  cursor: pointer;
-  color: #111;
-  display: inline-flex;
-}
-
-.picker {
-  display: flex;
-  gap: 8px;
-  padding: 10px 16px 12px;
+  gap: 12px;
+  padding: 14px 16px;
   background: var(--bg-alt);
   border-bottom: 1px solid var(--border);
 }
 
-.picker button {
+.top h1 {
+  margin: 0;
+  font-size: 20px;
+  letter-spacing: -0.5px;
+}
+
+.search {
   flex: 1;
-  padding: 8px 10px;
-  border: 1px solid transparent;
-  background: #fff;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
   border-radius: 8px;
+  background: #fff;
+  font-size: 15px;
+  outline: none;
+}
+
+.search:focus {
+  border-color: var(--teal);
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+}
+
+.search-results {
+  list-style: none;
+  margin: 0;
+  padding: 8px 12px;
+  background: var(--bg-alt);
+  border-bottom: 1px solid var(--border);
+}
+
+.search-results .empty {
+  padding: 12px;
+  color: var(--muted);
   font-size: 14px;
+}
+
+.search-result {
+  width: 100%;
+  text-align: left;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin: 4px 0;
+  font-size: 15px;
   font-weight: 600;
-  color: var(--text);
   cursor: pointer;
-  transition: all 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
 }
 
-.picker button.active {
-  background: var(--teal);
-  color: #fff;
+.search-result:hover:not(:disabled) {
+  border-color: var(--teal);
 }
 
-.table-head,
+.search-result.added,
+.search-result:disabled {
+  cursor: default;
+  background: var(--bg-row);
+  color: var(--muted);
+}
+
+.badge {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--muted);
+  text-transform: lowercase;
+}
+
+.hint {
+  padding: 24px 20px;
+  color: var(--muted);
+  font-size: 15px;
+  text-align: center;
+}
+
+.station-card {
+  border-bottom: 1px solid var(--border);
+}
+
+.station-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 20px 8px;
+  background: var(--bg);
+}
+
+.station-head h2 {
+  flex: 1;
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.4px;
+}
+
+.remove {
+  background: transparent;
+  border: none;
+  font-size: 24px;
+  line-height: 1;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+}
+
+.remove:hover {
+  color: var(--text);
+  background: var(--bg-alt);
+}
+
 .row {
   display: grid;
-  grid-template-columns: 88px 90px 1fr 56px;
+  grid-template-columns: 60px 88px 1fr 44px;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   padding: 10px 20px;
-}
-
-.table-head {
-  background: var(--bg-alt);
-  font-size: 14px;
+  font-size: 17px;
   font-weight: 700;
-  color: var(--text);
 }
 
 .rows {
   list-style: none;
   margin: 0;
   padding: 0;
-  flex: 1;
-}
-
-.row {
-  font-size: 18px;
-  font-weight: 700;
-  padding: 14px 20px;
-  border-top: 1px solid transparent;
 }
 
 .rows .row:nth-child(odd) {
@@ -152,13 +195,14 @@ button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 72px;
-  padding: 6px 10px;
+  min-width: 44px;
+  padding: 4px 8px;
   border-radius: 4px;
   font-weight: 800;
-  font-size: 16px;
+  font-size: 15px;
   color: #1a1a1a;
   font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  background: var(--bg-alt);
 }
 
 .line-F { background: var(--line-F); }
@@ -175,13 +219,13 @@ button {
 .min-label {
   color: var(--muted);
   font-weight: 500;
-  font-size: 14px;
+  font-size: 13px;
 }
 
 .delay {
   color: #d04040;
   font-weight: 700;
-  font-size: 14px;
+  font-size: 13px;
   margin-left: 4px;
 }
 
@@ -199,9 +243,8 @@ button {
 
 .empty {
   list-style: none;
-  padding: 40px 20px;
+  padding: 24px 20px;
   text-align: center;
   color: var(--muted);
-  font-size: 15px;
+  font-size: 14px;
 }
-

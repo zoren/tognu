@@ -4,37 +4,113 @@ import './styles.css';
  * @typedef {Object} Departure
  * @property {string} line
  * @property {string} trainNumber
- * @property {string} aimedTime           ISO timestamp
- * @property {string|null} expectedTime   ISO timestamp, null if not yet estimated
+ * @property {string|null} aimedTime
+ * @property {string|null} expectedTime
  * @property {string} destination
+ * @property {string|null} destinationStationId
  * @property {string|null} track
  * @property {string} stationId
- * @property {'north'|'south'} direction
  */
 
 /** @typedef {Record<string, Departure[]>} State */
+/** @typedef {{id: string, name: string}} Station */
 
-/** @typedef {'connecting'|'open'|'closed'} ConnState */
+const FAVORITES_KEY = 'tognu.favorites';
 
-const STATIONS = /** @type {const} */ ([
-  { id: '8600642', name: 'Nørrebro' },
-  { id: '8600783', name: 'København Syd' },
-]);
-
+/** @type {string[]} */
+let favorites = loadFavorites();
+/** @type {Station[]} */
+let allStations = [];
 /** @type {State} */
 let state = {};
-/** @type {string} */
-let currentStationId = STATIONS[0].id;
-/** @type {ConnState} */
-let connState = 'connecting';
-/** @type {number} */
+let connState = /** @type {'connecting'|'open'|'closed'} */ ('connecting');
 let now = Date.now();
+let search = '';
+/** @type {EventSource|null} */
+let es = null;
+
+function loadFavorites() {
+  try {
+    const raw = localStorage.getItem(FAVORITES_KEY);
+    if (!raw) return [];
+    const arr = JSON.parse(raw);
+    return Array.isArray(arr) ? arr.filter((x) => typeof x === 'string') : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveFavorites() {
+  localStorage.setItem(FAVORITES_KEY, JSON.stringify(favorites));
+}
+
+function addFavorite(id) {
+  if (favorites.includes(id)) return;
+  favorites = [...favorites, id];
+  saveFavorites();
+  search = '';
+  if (searchInput) searchInput.value = '';
+  reconnect();
+  renderList();
+}
+
+function removeFavorite(id) {
+  favorites = favorites.filter((x) => x !== id);
+  saveFavorites();
+  delete state[id];
+  reconnect();
+  renderList();
+}
+
+function reconnect() {
+  if (es) {
+    es.close();
+    es = null;
+  }
+  if (favorites.length === 0) {
+    connState = 'open';
+    return;
+  }
+  connState = 'connecting';
+  const qs = new URLSearchParams({ stations: favorites.join(',') }).toString();
+  es = new EventSource(`/api/stream?${qs}`);
+  es.onopen = () => {
+    connState = 'open';
+    renderList();
+  };
+  es.onerror = () => {
+    connState = 'closed';
+    renderList();
+  };
+  es.onmessage = (e) => {
+    try {
+      state = JSON.parse(e.data);
+      renderList();
+    } catch {}
+  };
+}
+
+async function loadStations() {
+  try {
+    const res = await fetch('/api/stations');
+    if (!res.ok) return;
+    const data = await res.json();
+    if (Array.isArray(data)) {
+      allStations = data.filter((s) => s && s.id);
+      renderList();
+    }
+  } catch {}
+}
+
+function nameOf(id) {
+  const hit = allStations.find((s) => s.id === id);
+  return hit?.name || id;
+}
 
 /**
- * Tiny DOM builder.
  * @param {string} tag
- * @param {Record<string, string|number|boolean|EventListener>} [attrs]
- * @param {...(Node|string|null|undefined|Array<Node|string|null|undefined>)} children
+ * @param {Record<string, any>} [attrs]
+ * @param {...any} children
  * @returns {HTMLElement}
  */
 function el(tag, attrs, ...children) {
@@ -44,7 +120,7 @@ function el(tag, attrs, ...children) {
       if (v == null || v === false) continue;
       if (k === 'class') node.className = String(v);
       else if (k.startsWith('on') && typeof v === 'function') {
-        node.addEventListener(k.slice(2).toLowerCase(), /** @type {EventListener} */ (v));
+        node.addEventListener(k.slice(2).toLowerCase(), v);
       } else if (v === true) {
         node.setAttribute(k, '');
       } else {
@@ -59,38 +135,27 @@ function el(tag, attrs, ...children) {
   return node;
 }
 
-/**
- * @param {Departure} d
- * @returns {number}
- */
+/** @param {Departure} d */
 function departureEpoch(d) {
-  return new Date(d.expectedTime || d.aimedTime).getTime();
+  return new Date(d.expectedTime || d.aimedTime || 0).getTime();
 }
 
-/**
- * @param {State} s
- * @param {string} stationId
- * @returns {Departure[]}
- */
-function upcomingDepartures(s, stationId) {
-  const list = s[stationId] ?? [];
+/** @param {Departure[]} list */
+function upcoming(list) {
   return list
     .filter((d) => {
       const t = departureEpoch(d);
-      return !Number.isNaN(t) && t >= now - 60_000;
+      return t > 0 && t >= now - 60_000;
     })
     .sort((a, b) => departureEpoch(a) - departureEpoch(b))
-    .slice(0, 14);
+    .slice(0, 10);
 }
 
-/**
- * @param {Departure} d
- * @returns {HTMLElement}
- */
+/** @param {Departure} d */
 function renderRow(d) {
   const target = departureEpoch(d);
   const minutes = Math.max(0, Math.round((target - now) / 60_000));
-  const delayMin = d.expectedTime
+  const delayMin = d.expectedTime && d.aimedTime
     ? Math.round((new Date(d.expectedTime).getTime() - new Date(d.aimedTime).getTime()) / 60_000)
     : 0;
   return el(
@@ -104,123 +169,135 @@ function renderRow(d) {
       el('span', { class: 'min-label' }, ' min'),
       delayMin > 0 ? el('span', { class: 'delay' }, ` +${delayMin}`) : null,
     ),
-    el('span', { class: 'dest' }, d.destination),
+    el('span', { class: 'dest' }, d.destination || '–'),
     el('span', { class: 'track' }, d.track ?? '–'),
   );
 }
 
-/** @returns {HTMLElement} */
-function renderApp() {
-  const station = STATIONS.find((s) => s.id === currentStationId) ?? STATIONS[0];
-  const upcoming = upcomingDepartures(state, currentStationId);
-  const statusText =
-    connState === 'open'
-      ? 'Ingen kommende afgange'
-      : connState === 'connecting'
-        ? 'Forbinder…'
-        : 'Ingen forbindelse';
-
+/** @param {string} stationId */
+function renderStation(stationId) {
+  const list = upcoming(state[stationId] ?? []);
+  const status =
+    connState === 'connecting'
+      ? 'Forbinder…'
+      : connState === 'closed'
+        ? 'Ingen forbindelse'
+        : 'Ingen kommende afgange';
   return el(
-    'main',
-    { class: 'app' },
-
+    'section',
+    { class: 'station-card' },
     el(
-      'section',
-      { class: 'station' },
-      el(
-        'div',
-        { class: 's-logo', 'aria-hidden': 'true' },
-        el('span', {}, 'S'),
-      ),
-      el('h1', {}, station.name),
+      'header',
+      { class: 'station-head' },
+      el('h2', {}, nameOf(stationId)),
       el(
         'button',
-        { type: 'button', class: 'bookmark', 'aria-label': 'Gem station' },
-        bookmarkIcon(),
+        {
+          type: 'button',
+          class: 'remove',
+          title: 'Fjern',
+          'aria-label': 'Fjern',
+          onclick: () => removeFavorite(stationId),
+        },
+        '×',
       ),
     ),
-
-    el(
-      'div',
-      { class: 'picker', role: 'tablist', 'aria-label': 'Vælg station' },
-      STATIONS.map((s) =>
-        el(
-          'button',
-          {
-            type: 'button',
-            role: 'tab',
-            'aria-selected': s.id === currentStationId ? 'true' : 'false',
-            class: s.id === currentStationId ? 'active' : '',
-            onclick: () => {
-              currentStationId = s.id;
-              render();
-            },
-          },
-          s.name,
-        ),
-      ),
-    ),
-
-    el(
-      'div',
-      { class: 'table-head' },
-      el('span', {}, 'Linje'),
-      el('span', {}, 'Om min.'),
-      el('span', {}, 'Til'),
-      el('span', {}, 'Spor'),
-    ),
-
     el(
       'ul',
       { class: 'rows' },
-      upcoming.length === 0
-        ? el('li', { class: 'empty' }, statusText)
-        : upcoming.map(renderRow),
+      list.length === 0
+        ? el('li', { class: 'empty' }, status)
+        : list.map(renderRow),
     ),
   );
 }
 
-/** @returns {SVGElement} */
-function bookmarkIcon() {
-  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-  svg.setAttribute('viewBox', '0 0 24 24');
-  svg.setAttribute('width', '28');
-  svg.setAttribute('height', '28');
-  svg.setAttribute('aria-hidden', 'true');
-  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-  path.setAttribute('d', 'M6 3h12v18l-6-4-6 4V3z');
-  path.setAttribute('fill', 'currentColor');
-  svg.appendChild(path);
-  return svg;
+function renderSearchResults() {
+  const q = search.trim().toLowerCase();
+  if (!q) return null;
+  const matches = allStations
+    .filter((s) => s.name && s.name.toLowerCase().includes(q))
+    .slice(0, 10);
+  return el(
+    'ul',
+    { class: 'search-results' },
+    matches.length === 0
+      ? el('li', { class: 'empty' }, 'Ingen stationer fundet')
+      : matches.map((s) => {
+          const added = favorites.includes(s.id);
+          return el(
+            'li',
+            {},
+            el(
+              'button',
+              {
+                type: 'button',
+                class: 'search-result' + (added ? ' added' : ''),
+                disabled: added,
+                onclick: () => addFavorite(s.id),
+              },
+              s.name,
+              added ? el('span', { class: 'badge' }, 'tilføjet') : null,
+            ),
+          );
+        }),
+  );
 }
 
-function render() {
+/** @type {HTMLInputElement|null} */
+let searchInput = null;
+/** @type {HTMLElement|null} */
+let listRoot = null;
+
+function buildShell() {
+  searchInput = /** @type {HTMLInputElement} */ (
+    el('input', {
+      type: 'search',
+      class: 'search',
+      placeholder: 'Søg station…',
+      autocomplete: 'off',
+      'aria-label': 'Søg station',
+      oninput: (e) => {
+        search = /** @type {HTMLInputElement} */ (e.target).value;
+        renderList();
+      },
+    })
+  );
+  listRoot = el('div', { class: 'list' });
+  const main = el(
+    'main',
+    { class: 'app' },
+    el('header', { class: 'top' }, el('h1', {}, 'S-tog'), searchInput),
+    listRoot,
+  );
   const root = document.getElementById('app');
-  if (!root) return;
-  root.replaceChildren(renderApp());
+  if (root) root.replaceChildren(main);
 }
 
-function connect() {
-  const es = new EventSource('/api/stream');
-  es.onopen = () => {
-    connState = 'open';
-    render();
-  };
-  es.onerror = () => {
-    connState = 'closed';
-    render();
-  };
-  es.onmessage = (e) => {
-    try {
-      state = JSON.parse(e.data);
-      render();
-    } catch {}
-  };
+function renderList() {
+  if (!listRoot) return;
+  const children = [];
+  const results = renderSearchResults();
+  if (results) children.push(results);
+  if (favorites.length === 0 && !search.trim()) {
+    children.push(
+      el(
+        'p',
+        { class: 'hint' },
+        'Søg efter en station ovenfor og vælg den for at tilføje til dine favoritter.',
+      ),
+    );
+  } else {
+    for (const id of favorites) children.push(renderStation(id));
+  }
+  listRoot.replaceChildren(...children);
 }
 
-render();
-connect();
+buildShell();
+renderList();
+loadStations();
+reconnect();
 setInterval(() => {
   now = Date.now();
-  render();
+  renderList();
 }, 15_000);
