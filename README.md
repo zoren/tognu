@@ -1,5 +1,19 @@
 an app that shows train schedules for S-trains
 
+## Architecture
+
+Two long-running processes share a SQLite file (`tognu.db`):
+
+- **`ingest.js`** — subscribes to the SIRI Service Bus topic, parses every
+  journey across all lines/stations, and upserts each call into `departures`.
+  Past records (and superseded ones for the same train+station) are pruned.
+- **`index.js`** — HTTP server that serves the built frontend and exposes
+  `/api/stations`, `/api/state`, and `/api/stream`. It only reads from the
+  SQLite file and polls every few seconds to push SSE updates.
+
+The frontend (`src/main.js`) lets you search any station and stack favorites
+on a single screen. Favorites are stored in `localStorage`.
+
 ## Setup
 
 1. Copy `.env.example` to `.env` and fill in the Azure Service Bus credentials.
@@ -7,20 +21,22 @@ an app that shows train schedules for S-trains
 
 ## Develop
 
-Run the backend and the Vite dev server side by side:
-
 ```
 npm run dev
 ```
 
-- Backend (SIRI subscriber + HTTP/SSE) listens on http://localhost:8080
+Runs the server, the ingest worker, and the Vite dev server side by side:
+
+- Backend (HTTP/SSE) on http://localhost:8080
 - Vite dev server with HMR on http://localhost:5173 (proxies `/api` → :8080)
+- Ingest worker writes to `./tognu.db`
 
 ## Production
 
 ```
-npm run build   # bundle the frontend into dist/
-npm start       # run the backend; it serves dist/ and the API
+npm run build      # bundle the frontend into dist/
+npm start          # serve dist/ + API (reads tognu.db)
+npm run ingest     # populate tognu.db from the SIRI feed
 ```
 
-Then open http://localhost:8080.
+`deploy.mjs` runs both `tognu` (server) and `tognu-ingest` (worker) under pm2.

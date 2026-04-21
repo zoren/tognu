@@ -5,15 +5,18 @@
   "type": "module",
   "scripts": {
     "start": "node --env-file=.env index.js",
+    "ingest": "node --env-file=.env ingest.js",
     "dev:server": "node --env-file=.env --watch index.js",
+    "dev:ingest": "node --env-file=.env --watch ingest.js",
     "dev:client": "vite",
-    "dev": "concurrently -k -n server,client -c cyan,magenta \"npm:dev:server\" \"npm:dev:client\"",
+    "dev": "concurrently -k -n server,ingest,client -c cyan,green,magenta \"npm:dev:server\" \"npm:dev:ingest\" \"npm:dev:client\"",
     "build": "vite build",
     "preview": "vite preview"
   },
   "dependencies": {
     "@azure/identity": "^4.5.0",
     "@azure/service-bus": "^7.9.5",
+    "better-sqlite3": "^11.7.0",
     "fast-xml-parser": "^4.5.0"
   },
   "devDependencies": {
