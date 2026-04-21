@@ -142,13 +142,31 @@ function departureEpoch(d) {
 
 /** @param {Departure[]} list */
 function upcoming(list) {
-  return list
+  const sorted = list
     .filter((d) => {
       const t = departureEpoch(d);
       return t > 0 && t >= now - 60_000;
     })
-    .sort((a, b) => departureEpoch(a) - departureEpoch(b))
-    .slice(0, 10);
+    .sort((a, b) => departureEpoch(a) - departureEpoch(b));
+  /** @type {Map<string, number>} */
+  const counts = new Map();
+  const out = [];
+  for (const d of sorted) {
+    const key = d.destinationStationId || d.destination || '';
+    const n = counts.get(key) || 0;
+    if (n >= 2) continue;
+    counts.set(key, n + 1);
+    out.push(d);
+  }
+  return out;
+}
+
+/** @param {Departure} d */
+function formatClock(d) {
+  const iso = d.expectedTime || d.aimedTime;
+  if (!iso) return '';
+  const dt = new Date(iso);
+  return `${String(dt.getHours()).padStart(2, '0')}:${String(dt.getMinutes()).padStart(2, '0')}`;
 }
 
 /** @param {Departure} d */
@@ -168,6 +186,7 @@ function renderRow(d) {
       String(minutes),
       el('span', { class: 'min-label' }, ' min'),
       delayMin > 0 ? el('span', { class: 'delay' }, ` +${delayMin}`) : null,
+      el('span', { class: 'time' }, formatClock(d)),
     ),
     el('span', { class: 'dest' }, d.destination || '–'),
     el('span', { class: 'track' }, d.track ?? '–'),

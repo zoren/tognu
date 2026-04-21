@@ -173,7 +173,7 @@ button {
 
 .row {
   display: grid;
-  grid-template-columns: 60px 88px 1fr 44px;
+  grid-template-columns: 60px 124px 1fr 44px;
   align-items: center;
   gap: 10px;
   padding: 10px 20px;
@@ -227,6 +227,13 @@ button {
   font-weight: 700;
   font-size: 13px;
   margin-left: 4px;
+}
+
+.time {
+  color: var(--muted);
+  font-weight: 500;
+  font-size: 13px;
+  margin-left: 8px;
 }
 
 .dest {
