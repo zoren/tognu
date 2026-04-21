@@ -85,8 +85,10 @@ function snapshot(stationIds) {
       continue;
     }
     const calls = asArray(journey.EstimatedCalls?.EstimatedCall);
+    const lastCall = calls[calls.length - 1];
     for (const call of calls) {
       if (call.StopPointRef == null) continue;
+      if (call === lastCall) continue;
       const stopId = String(call.StopPointRef);
       if (!wanted.has(stopId)) continue;
       out[stopId].push(projectDeparture(journey, call, stationMap));
