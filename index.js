@@ -280,16 +280,18 @@ async function serveStatic(req, res) {
       return;
     }
   } catch {}
-  // SPA fallback
-  try {
-    const fallback = join(DIST_DIR, 'index.html');
-    const s = await stat(fallback);
-    if (s.isFile()) {
-      res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
-      createReadStream(fallback).pipe(res);
-      return;
-    }
-  } catch {}
+  // SPA fallback: only for routes without a file extension
+  if (!extname(rel)) {
+    try {
+      const fallback = join(DIST_DIR, 'index.html');
+      const s = await stat(fallback);
+      if (s.isFile()) {
+        res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
+        createReadStream(fallback).pipe(res);
+        return;
+      }
+    } catch {}
+  }
   res.writeHead(404).end('Not Found');
 }
 
