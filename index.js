@@ -10,22 +10,58 @@ const POLL_INTERVAL = Number(process.env.POLL_INTERVAL ?? 3000);
 
 const db = openDb();
 
-const queryByStation = db.prepare(`
-  SELECT
-    line,
-    train_number     AS trainNumber,
-    station_id       AS stationId,
-    aimed_time       AS aimedTime,
-    expected_time    AS expectedTime,
-    destination,
-    destination_station_id AS destinationStationId,
-    track
-  FROM departures
-  WHERE station_id = ?
-  ORDER BY COALESCE(expected_time, aimed_time)
-`);
-
+const queryAllJourneys = db.prepare(`SELECT data FROM journeys`);
 const queryStations = db.prepare(`SELECT id, name FROM stations ORDER BY name`);
+
+function asArray(x) {
+  if (x == null) return [];
+  return Array.isArray(x) ? x : [x];
+}
+
+function textOf(node) {
+  if (node == null) return '';
+  if (typeof node === 'string') return node;
+  if (typeof node === 'object') return String(node['#text'] ?? '');
+  return String(node);
+}
+
+function extractTrack(c) {
+  return (
+    c.DeparturePlatformName ??
+    c.ArrivalPlatformName ??
+    c.DepartureStopAssignment?.AimedQuayName ??
+    c.ArrivalStopAssignment?.AimedQuayName ??
+    null
+  );
+}
+
+function deriveDestinationName(journey, stationMap) {
+  const name = textOf(journey.DestinationName).trim();
+  if (name) return name;
+  const ref = journey.DestinationRef != null ? String(journey.DestinationRef) : null;
+  if (ref) return stationMap.get(ref) || ref;
+  const last = asArray(journey.EstimatedCalls?.EstimatedCall).at(-1);
+  if (last?.StopPointRef != null) {
+    const id = String(last.StopPointRef);
+    return stationMap.get(id) || id;
+  }
+  return '';
+}
+
+function projectDeparture(journey, call, stationMap) {
+  const track = extractTrack(call);
+  return {
+    line: String(journey.LineRef ?? ''),
+    trainNumber: String(journey.TrainNumbers?.TrainNumberRef ?? ''),
+    stationId: String(call.StopPointRef),
+    aimedTime: call.AimedArrivalTime ?? call.AimedDepartureTime ?? null,
+    expectedTime: call.ExpectedArrivalTime ?? call.ExpectedDepartureTime ?? null,
+    destination: deriveDestinationName(journey, stationMap),
+    destinationStationId:
+      journey.DestinationRef != null ? String(journey.DestinationRef) : null,
+    track: track != null ? String(track) : null,
+  };
+}
 
 function parseStations(value) {
   return (value ?? '')
@@ -36,7 +72,33 @@ function parseStations(value) {
 
 function snapshot(stationIds) {
   const out = {};
-  for (const id of stationIds) out[id] = queryByStation.all(id);
+  for (const id of stationIds) out[id] = [];
+  if (stationIds.length === 0) return out;
+  const wanted = new Set(stationIds);
+  const stationMap = new Map();
+  for (const s of queryStations.all()) stationMap.set(s.id, s.name);
+  for (const row of queryAllJourneys.all()) {
+    let journey;
+    try {
+      journey = JSON.parse(row.data);
+    } catch {
+      continue;
+    }
+    const calls = asArray(journey.EstimatedCalls?.EstimatedCall);
+    for (const call of calls) {
+      if (call.StopPointRef == null) continue;
+      const stopId = String(call.StopPointRef);
+      if (!wanted.has(stopId)) continue;
+      out[stopId].push(projectDeparture(journey, call, stationMap));
+    }
+  }
+  for (const id of stationIds) {
+    out[id].sort((a, b) => {
+      const ta = new Date(a.expectedTime || a.aimedTime || 0).getTime();
+      const tb = new Date(b.expectedTime || b.aimedTime || 0).getTime();
+      return ta - tb;
+    });
+  }
   return out;
 }
 

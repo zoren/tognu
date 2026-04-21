@@ -27,21 +27,17 @@ const OVERRIDES = { 8600736: 'Flintholm' };
 
 const db = openDb();
 
-const upsertDeparture = db.prepare(`
-  INSERT INTO departures (
-    line, train_number, station_id, aimed_time, expected_time,
-    destination, destination_station_id, track, updated_at
+const upsertJourney = db.prepare(`
+  INSERT INTO journeys (
+    line, train_number, journey_key, data, earliest_time, latest_time, received_at
   ) VALUES (
-    @line, @train_number, @station_id, @aimed_time, @expected_time,
-    @destination, @destination_station_id, @track, @updated_at
+    @line, @train_number, @journey_key, @data, @earliest_time, @latest_time, @received_at
   )
-  ON CONFLICT(line, train_number, station_id) DO UPDATE SET
-    aimed_time = excluded.aimed_time,
-    expected_time = excluded.expected_time,
-    destination = excluded.destination,
-    destination_station_id = excluded.destination_station_id,
-    track = excluded.track,
-    updated_at = excluded.updated_at
+  ON CONFLICT(line, train_number, journey_key) DO UPDATE SET
+    data = excluded.data,
+    earliest_time = excluded.earliest_time,
+    latest_time = excluded.latest_time,
+    received_at = excluded.received_at
 `);
 
 const upsertStation = db.prepare(`
@@ -53,7 +49,7 @@ const upsertStation = db.prepare(`
 const getStationName = db.prepare(`SELECT name FROM stations WHERE id = ?`);
 
 const deleteOld = db.prepare(`
-  DELETE FROM departures WHERE COALESCE(expected_time, aimed_time) < ?
+  DELETE FROM journeys WHERE latest_time < ?
 `);
 
 // One-time seed of station names from the legacy JSON cache.
@@ -82,57 +78,55 @@ async function lookupStationName(id) {
   }
 }
 
-async function stationName(id) {
+async function ensureStationName(id) {
   const key = String(id);
-  if (OVERRIDES[key]) return OVERRIDES[key];
-  const row = getStationName.get(key);
-  if (row !== undefined) return row.name || key;
+  if (OVERRIDES[key]) {
+    upsertStation.run({ id: key, name: OVERRIDES[key] });
+    return;
+  }
+  if (getStationName.get(key) !== undefined) return;
   const name = await lookupStationName(key);
   upsertStation.run({ id: key, name });
-  return name || key;
 }
 
-function asArray(x) {
-  if (x == null) return [];
-  return Array.isArray(x) ? x : [x];
-}
-
-function extractTrack(c) {
+function callTime(c) {
   return (
-    c.DeparturePlatformName ??
-    c.ArrivalPlatformName ??
-    c.DepartureStopAssignment?.AimedQuayName ??
-    c.ArrivalStopAssignment?.AimedQuayName ??
+    c.ExpectedDepartureTime ??
+    c.ExpectedArrivalTime ??
+    c.AimedDepartureTime ??
+    c.AimedArrivalTime ??
     null
   );
 }
 
-function textOf(node) {
-  if (node == null) return '';
-  if (typeof node === 'string') return node;
-  if (typeof node === 'object') return String(node['#text'] ?? '');
-  return String(node);
+function deriveJourneyKey(j, calls) {
+  const datedRef =
+    j.FramedVehicleJourneyRef?.DatedVehicleJourneyRef ??
+    j.DatedVehicleJourneyRef ??
+    null;
+  if (datedRef) return String(datedRef);
+  const first = calls[0];
+  const t = first?.AimedDepartureTime ?? first?.AimedArrivalTime ?? null;
+  return t ? String(t) : '';
 }
 
-async function deriveDestination(j, calls) {
-  const destRef = j.DestinationRef ? String(j.DestinationRef) : null;
-  const destName = textOf(j.DestinationName).trim();
-  if (destName) return { destination: destName, destination_station_id: destRef };
-  if (destRef) {
-    return { destination: await stationName(destRef), destination_station_id: destRef };
+function spanOfCalls(calls) {
+  let earliest = null;
+  let latest = null;
+  for (const c of calls) {
+    const t = callTime(c);
+    if (!t) continue;
+    if (earliest === null || t < earliest) earliest = t;
+    if (latest === null || t > latest) latest = t;
   }
-  const last = calls[calls.length - 1];
-  if (last?.StopPointRef) {
-    const lastId = String(last.StopPointRef);
-    return { destination: await stationName(lastId), destination_station_id: lastId };
-  }
-  return { destination: '', destination_station_id: null };
+  return { earliest, latest };
 }
 
 const xmlParser = new XMLParser({
   ignoreAttributes: false,
   attributeNamePrefix: '@_',
   trimValues: true,
+  isArray: (name) => name === 'EstimatedCall' || name === 'EstimatedVehicleJourney',
 });
 
 async function handleMessage(msg) {
@@ -151,10 +145,9 @@ async function handleMessage(msg) {
     return;
   }
 
-  const journeys = asArray(
+  const journeys =
     parsed?.Siri?.ServiceDelivery?.EstimatedTimetableDelivery
-      ?.EstimatedJourneyVersionFrame?.EstimatedVehicleJourney,
-  );
+      ?.EstimatedJourneyVersionFrame?.EstimatedVehicleJourney ?? [];
   if (journeys.length === 0) return;
 
   if (SAMPLE) {
@@ -162,48 +155,51 @@ async function handleMessage(msg) {
     process.exit(0);
   }
 
-  const updatedAt = new Date().toISOString();
+  const receivedAt = (msg.enqueuedTimeUtc?.toISOString?.() ?? new Date().toISOString());
+  const stopIdsToResolve = new Set();
+  const rows = [];
 
   for (const j of journeys) {
-    const calls = asArray(j.EstimatedCalls?.EstimatedCall);
+    const calls = j.EstimatedCalls?.EstimatedCall ?? [];
     if (calls.length === 0) continue;
     const line = String(j.LineRef ?? '').trim();
     const trainNumber = String(j.TrainNumbers?.TrainNumberRef ?? '').trim();
     if (!line || !trainNumber) continue;
-
-    const { destination, destination_station_id } = await deriveDestination(j, calls);
-
-    const rows = [];
+    const journeyKey = deriveJourneyKey(j, calls);
+    if (!journeyKey) continue;
+    const { earliest, latest } = spanOfCalls(calls);
+    rows.push({
+      line,
+      train_number: trainNumber,
+      journey_key: journeyKey,
+      data: JSON.stringify(j),
+      earliest_time: earliest,
+      latest_time: latest,
+      received_at: receivedAt,
+    });
     for (const c of calls) {
-      const stopId = String(c.StopPointRef);
-      if (!stopId) continue;
-      const track = extractTrack(c);
-      rows.push({
-        line,
-        train_number: trainNumber,
-        station_id: stopId,
-        aimed_time: c.AimedArrivalTime ?? c.AimedDepartureTime ?? null,
-        expected_time: c.ExpectedArrivalTime ?? c.ExpectedDepartureTime ?? null,
-        destination,
-        destination_station_id,
-        track: track != null ? String(track) : null,
-        updated_at: updatedAt,
-      });
+      if (c.StopPointRef != null) stopIdsToResolve.add(String(c.StopPointRef));
     }
+    if (j.DestinationRef != null) stopIdsToResolve.add(String(j.DestinationRef));
+    if (j.OriginRef != null) stopIdsToResolve.add(String(j.OriginRef));
+  }
 
-    if (rows.length > 0) {
-      const tx = db.transaction((rs) => {
-        for (const r of rs) upsertDeparture.run(r);
-      });
-      tx(rows);
-    }
+  if (rows.length > 0) {
+    const tx = db.transaction((rs) => {
+      for (const r of rs) upsertJourney.run(r);
+    });
+    tx(rows);
+  }
+
+  for (const id of stopIdsToResolve) {
+    await ensureStationName(id);
   }
 }
 
 setInterval(() => {
   const cutoff = new Date(Date.now() - RETENTION_MS).toISOString();
   const result = deleteOld.run(cutoff);
-  if (result.changes > 0) console.log(`Pruned ${result.changes} past departures`);
+  if (result.changes > 0) console.log(`Pruned ${result.changes} past journeys`);
 }, CLEANUP_INTERVAL).unref();
 
 const credential = new ClientSecretCredential(

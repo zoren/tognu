@@ -4,12 +4,15 @@ an app that shows train schedules for S-trains
 
 Two long-running processes share a SQLite file (`tognu.db`):
 
-- **`ingest.js`** — subscribes to the SIRI Service Bus topic, parses every
-  journey across all lines/stations, and upserts each call into `departures`.
-  Past records (and superseded ones for the same train+station) are pruned.
+- **`ingest.js`** — subscribes to the SIRI Service Bus topic and upserts each
+  parsed `EstimatedVehicleJourney` (verbatim, as JSON) into the `journeys`
+  table, keyed by `(line, train_number, journey_key)`. Past journeys are
+  pruned by `latest_time`; later updates for the same key replace the row.
 - **`index.js`** — HTTP server that serves the built frontend and exposes
   `/api/stations`, `/api/state`, and `/api/stream`. It only reads from the
-  SQLite file and polls every few seconds to push SSE updates.
+  SQLite file: every poll it loads the journeys, projects each call to a
+  departure shape, and pushes SSE diffs. All display fields are derived at
+  read time, so changing what's shown doesn't require fresh ingest data.
 
 The frontend (`src/main.js`) lets you search any station and stack favorites
 on a single screen. Favorites are stored in `localStorage`.
