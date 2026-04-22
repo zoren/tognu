@@ -16,9 +16,12 @@ import './styles.css';
 /** @typedef {{id: string, name: string}} Station */
 
 const FAVORITES_KEY = 'tognu.favorites';
+const LINE_FILTERS_KEY = 'tognu.lineFilters';
 
 /** @type {string[]} */
 let favorites = loadFavorites();
+/** @type {Record<string, string[]>} */
+let lineFilters = loadLineFilters();
 /** @type {Station[]} */
 let allStations = [];
 /** @type {State} */
@@ -44,6 +47,40 @@ function saveFavorites() {
   localStorage.setItem(FAVORITES_KEY, JSON.stringify(favorites));
 }
 
+function loadLineFilters() {
+  try {
+    const raw = localStorage.getItem(LINE_FILTERS_KEY);
+    if (!raw) return {};
+    const obj = JSON.parse(raw);
+    if (!obj || typeof obj !== 'object') return {};
+    /** @type {Record<string, string[]>} */
+    const out = {};
+    for (const [k, v] of Object.entries(obj)) {
+      if (Array.isArray(v)) {
+        const lines = v.filter((x) => typeof x === 'string');
+        if (lines.length) out[k] = lines;
+      }
+    }
+    return out;
+  } catch {
+    return {};
+  }
+}
+
+function saveLineFilters() {
+  localStorage.setItem(LINE_FILTERS_KEY, JSON.stringify(lineFilters));
+}
+
+function toggleLineFilter(stationId, line) {
+  const hidden = new Set(lineFilters[stationId] ?? []);
+  if (hidden.has(line)) hidden.delete(line);
+  else hidden.add(line);
+  if (hidden.size === 0) delete lineFilters[stationId];
+  else lineFilters[stationId] = Array.from(hidden);
+  saveLineFilters();
+  renderList();
+}
+
 function addFavorite(id) {
   if (favorites.includes(id)) return;
   favorites = [...favorites, id];
@@ -57,6 +94,10 @@ function addFavorite(id) {
 function removeFavorite(id) {
   favorites = favorites.filter((x) => x !== id);
   saveFavorites();
+  if (lineFilters[id]) {
+    delete lineFilters[id];
+    saveLineFilters();
+  }
   delete state[id];
   reconnect();
   renderList();
@@ -195,7 +236,12 @@ function renderRow(d) {
 
 /** @param {string} stationId */
 function renderStation(stationId) {
-  const list = upcoming(state[stationId] ?? []);
+  const deps = state[stationId] ?? [];
+  const hidden = new Set(lineFilters[stationId] ?? []);
+  const availableLines = new Set(hidden);
+  for (const d of deps) if (d.line) availableLines.add(d.line);
+  const lines = Array.from(availableLines).sort();
+  const list = upcoming(deps.filter((d) => !hidden.has(d.line)));
   const status =
     connState === 'connecting'
       ? 'Forbinder…'
@@ -221,6 +267,25 @@ function renderStation(stationId) {
         '×',
       ),
     ),
+    lines.length > 1
+      ? el(
+          'div',
+          { class: 'line-filters' },
+          lines.map((line) => {
+            const off = hidden.has(line);
+            return el(
+              'button',
+              {
+                type: 'button',
+                class: `line-chip line-${line}` + (off ? ' off' : ''),
+                'aria-pressed': off ? 'false' : 'true',
+                onclick: () => toggleLineFilter(stationId, line),
+              },
+              line,
+            );
+          }),
+        )
+      : null,
     el(
       'ul',
       { class: 'rows' },
