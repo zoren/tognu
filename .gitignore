@@ -4,3 +4,10 @@ node_modules/
 dist/
 tognu.db
 tognu.db-*
+
+# Xcode (ios/)
+ios/Tognu.xcodeproj/
+ios/build/
+ios/DerivedData/
+**/xcuserdata/
+**/*.xcuserstate
