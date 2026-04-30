@@ -65,7 +65,7 @@ button {
   padding: 10px 12px;
   border: 1px solid var(--border);
   border-radius: 8px;
-  background: #fff;
+  background: var(--bg);
   font-size: 15px;
   outline: none;
 }
@@ -96,7 +96,7 @@ button {
 .search-result {
   width: 100%;
   text-align: left;
-  background: #fff;
+  background: var(--bg);
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 10px 12px;
@@ -281,4 +281,17 @@ button {
   text-align: center;
   color: var(--muted);
   font-size: 14px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --teal: #1a9a9a;
+    --text: #e4e4e4;
+    --muted: #999;
+    --bg: #121212;
+    --bg-alt: #1e1e1e;
+    --bg-row: #1a1a1a;
+    --border: #2e2e2e;
+    --shadow: 0 2px 10px rgba(0, 0, 0, 0.4);
+  }
 }
