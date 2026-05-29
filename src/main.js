@@ -228,7 +228,6 @@ function renderRow(d) {
       { class: 'mins' },
       String(minutes),
       el('span', { class: 'secs' }, ':' + String(seconds).padStart(2, '0')),
-      el('span', { class: 'min-label' }, ' min'),
       delayMin > 0 ? el('span', { class: 'delay' }, ` +${delayMin}`) : null,
       el('span', { class: 'time' }, formatClock(d)),
     ),

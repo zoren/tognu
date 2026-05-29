@@ -241,6 +241,7 @@ button {
 
 .mins {
   font-weight: 700;
+  white-space: nowrap;
 }
 
 .secs {
