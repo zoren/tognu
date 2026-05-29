@@ -213,7 +213,9 @@ function formatClock(d) {
 /** @param {Departure} d */
 function renderRow(d) {
   const target = departureEpoch(d);
-  const minutes = Math.max(0, Math.round((target - now) / 60_000));
+  const totalSec = Math.max(0, Math.floor((target - now) / 1000));
+  const minutes = Math.floor(totalSec / 60);
+  const seconds = totalSec % 60;
   const delayMin = d.expectedTime && d.aimedTime
     ? Math.round((new Date(d.expectedTime).getTime() - new Date(d.aimedTime).getTime()) / 60_000)
     : 0;
@@ -225,6 +227,7 @@ function renderRow(d) {
       'span',
       { class: 'mins' },
       String(minutes),
+      el('span', { class: 'secs' }, ':' + String(seconds).padStart(2, '0')),
       el('span', { class: 'min-label' }, ' min'),
       delayMin > 0 ? el('span', { class: 'delay' }, ` +${delayMin}`) : null,
       el('span', { class: 'time' }, formatClock(d)),
@@ -384,4 +387,4 @@ reconnect();
 setInterval(() => {
   now = Date.now();
   renderList();
-}, 15_000);
+}, 1_000);

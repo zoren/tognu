@@ -243,6 +243,11 @@ button {
   font-weight: 700;
 }
 
+.secs {
+  font-size: 13px;
+  font-weight: 500;
+}
+
 .min-label {
   color: var(--muted);
   font-weight: 500;
