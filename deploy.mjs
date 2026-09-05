@@ -20,9 +20,8 @@ await $`git push --atomic origin main ${vtag}`
 
 console.log(`Pushed version ${vtag} to main branch`)
 
-// not syncing nginx/ as it requires sudo to reload
-// rsync nginx/locations.nginx tognu@linode:app/nginx/
+// nginx/locations.nginx is included by the stint vhost from the app dir;
+// tognu-restart runs nginx -t + reload, so location changes ship with deploys.
+await $`rsync package.json package-lock.json station-names.json db.js index.js ingest.js journey.js ./dist ./nginx soren@stint:/srv/tognu/app/ -r`
 
-await $`rsync package.json package-lock.json .nvmrc station-names.json db.js index.js ingest.js ./dist tognu@linode:app/ -r`
-
-await $`ssh tognu@linode 'export NVM_DIR="$HOME/.nvm" && . "$NVM_DIR/nvm.sh" && cd app && nvm install && npm install --omit=dev && (pm2 restart tognu --update-env || pm2 start "npm start" --name tognu) && (pm2 restart tognu-ingest --update-env || pm2 start "npm run ingest" --name tognu-ingest) && pm2 save'`
+await $`ssh soren@stint 'cd /srv/tognu/app && npm ci --omit=dev && sudo /usr/local/bin/tognu-restart'`
