@@ -11,7 +11,8 @@
     "dev:client": "vite",
     "dev": "concurrently -k -n server,ingest,client -c cyan,green,magenta \"npm:dev:server\" \"npm:dev:ingest\" \"npm:dev:client\"",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "node --test"
   },
   "dependencies": {
     "@azure/identity": "^4.5.0",

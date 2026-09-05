@@ -3,6 +3,7 @@ import { ClientSecretCredential } from '@azure/identity';
 import { ServiceBusClient } from '@azure/service-bus';
 import { XMLParser } from 'fast-xml-parser';
 import { openDb } from './db.js';
+import { deriveJourneyKey, extractJourneys, mergeJourney, spanOfCalls } from './journey.js';
 
 const required = [
   'DUV_TENANT_ID',
@@ -48,6 +49,10 @@ const upsertStation = db.prepare(`
 
 const getStationName = db.prepare(`SELECT name FROM stations WHERE id = ?`);
 
+const getJourney = db.prepare(`
+  SELECT data FROM journeys WHERE line = ? AND train_number = ? AND journey_key = ?
+`);
+
 const deleteOld = db.prepare(`
   DELETE FROM journeys WHERE latest_time < ?
 `);
@@ -89,37 +94,56 @@ async function ensureStationName(id) {
   upsertStation.run({ id: key, name });
 }
 
-function callTime(c) {
-  return (
-    c.ExpectedDepartureTime ??
-    c.ExpectedArrivalTime ??
-    c.AimedDepartureTime ??
-    c.AimedArrivalTime ??
-    null
-  );
-}
-
-function deriveJourneyKey(j, calls) {
-  const datedRef =
-    j.FramedVehicleJourneyRef?.DatedVehicleJourneyRef ??
-    j.DatedVehicleJourneyRef ??
-    null;
-  if (datedRef) return String(datedRef);
-  const first = calls[0];
-  const t = first?.AimedDepartureTime ?? first?.AimedArrivalTime ?? null;
-  return t ? String(t) : '';
-}
-
-function spanOfCalls(calls) {
-  let earliest = null;
-  let latest = null;
-  for (const c of calls) {
-    const t = callTime(c);
-    if (!t) continue;
-    if (earliest === null || t < earliest) earliest = t;
-    if (latest === null || t > latest) latest = t;
+function storeJourneyRow(j, receivedAt) {
+  const calls = j.EstimatedCalls?.EstimatedCall ?? [];
+  if (calls.length === 0) return;
+  const line = String(j.LineRef ?? '').trim();
+  const trainNumber = String(j.TrainNumbers?.TrainNumberRef ?? '').trim();
+  if (!line || !trainNumber) return;
+  const journeyKey = deriveJourneyKey(j, calls);
+  if (!journeyKey) return;
+  let existing = null;
+  const row = getJourney.get(line, trainNumber, journeyKey);
+  if (row) {
+    try {
+      existing = JSON.parse(row.data);
+    } catch {}
   }
-  return { earliest, latest };
+  const merged = mergeJourney(existing, j);
+  const { earliest, latest } = spanOfCalls(merged.EstimatedCalls?.EstimatedCall ?? []);
+  upsertJourney.run({
+    line,
+    train_number: trainNumber,
+    journey_key: journeyKey,
+    data: JSON.stringify(merged),
+    earliest_time: earliest,
+    latest_time: latest,
+    received_at: receivedAt,
+  });
+}
+
+// Replay stored journeys through the current key/merge logic on startup, so
+// rows written under the old DatedVehicleJourneyRef keys (and local-offset
+// time spans) collapse onto the day-keyed, UTC-normalized form.
+{
+  const rows = db
+    .prepare(`SELECT data, received_at FROM journeys ORDER BY received_at`)
+    .all();
+  const replay = db.transaction((rs) => {
+    db.prepare(`DELETE FROM journeys`).run();
+    for (const r of rs) {
+      let j;
+      try {
+        j = JSON.parse(r.data);
+      } catch {
+        continue;
+      }
+      storeJourneyRow(j, r.received_at);
+    }
+  });
+  replay(rows);
+  const { n } = db.prepare(`SELECT COUNT(*) AS n FROM journeys`).get();
+  console.log(`Replayed ${rows.length} stored journeys into ${n} rows`);
 }
 
 const xmlParser = new XMLParser({
@@ -145,9 +169,7 @@ async function handleMessage(msg) {
     return;
   }
 
-  const journeys =
-    parsed?.Siri?.ServiceDelivery?.EstimatedTimetableDelivery
-      ?.EstimatedJourneyVersionFrame?.EstimatedVehicleJourney ?? [];
+  const journeys = extractJourneys(parsed);
   if (journeys.length === 0) return;
 
   if (SAMPLE) {
@@ -157,38 +179,18 @@ async function handleMessage(msg) {
 
   const receivedAt = (msg.enqueuedTimeUtc?.toISOString?.() ?? new Date().toISOString());
   const stopIdsToResolve = new Set();
-  const rows = [];
+
+  const tx = db.transaction((js) => {
+    for (const j of js) storeJourneyRow(j, receivedAt);
+  });
+  tx(journeys);
 
   for (const j of journeys) {
-    const calls = j.EstimatedCalls?.EstimatedCall ?? [];
-    if (calls.length === 0) continue;
-    const line = String(j.LineRef ?? '').trim();
-    const trainNumber = String(j.TrainNumbers?.TrainNumberRef ?? '').trim();
-    if (!line || !trainNumber) continue;
-    const journeyKey = deriveJourneyKey(j, calls);
-    if (!journeyKey) continue;
-    const { earliest, latest } = spanOfCalls(calls);
-    rows.push({
-      line,
-      train_number: trainNumber,
-      journey_key: journeyKey,
-      data: JSON.stringify(j),
-      earliest_time: earliest,
-      latest_time: latest,
-      received_at: receivedAt,
-    });
-    for (const c of calls) {
+    for (const c of j.EstimatedCalls?.EstimatedCall ?? []) {
       if (c.StopPointRef != null) stopIdsToResolve.add(String(c.StopPointRef));
     }
     if (j.DestinationRef != null) stopIdsToResolve.add(String(j.DestinationRef));
     if (j.OriginRef != null) stopIdsToResolve.add(String(j.OriginRef));
-  }
-
-  if (rows.length > 0) {
-    const tx = db.transaction((rs) => {
-      for (const r of rs) upsertJourney.run(r);
-    });
-    tx(rows);
   }
 
   for (const id of stopIdsToResolve) {
