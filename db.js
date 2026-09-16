@@ -1,9 +1,15 @@
 import Database from 'better-sqlite3';
+import { fileURLToPath } from 'node:url';
 
-export const DB_PATH = process.env.TOGNU_DB ?? './tognu.db';
+// Resolved against this module, not process.cwd(): the server and the ingest
+// worker have to open the same file no matter what working directory their
+// service manager hands them.
+export const DB_PATH =
+  process.env.TOGNU_DB ?? fileURLToPath(new URL('./tognu.db', import.meta.url));
 
 export function openDb(path = DB_PATH) {
   const db = new Database(path);
+  console.log(`SQLite: ${path}`);
   db.pragma('journal_mode = WAL');
   db.pragma('synchronous = NORMAL');
   db.exec(`
