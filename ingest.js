@@ -96,7 +96,7 @@ async function ensureStationName(id) {
 
 function storeJourneyRow(j, receivedAt) {
   const calls = j.EstimatedCalls?.EstimatedCall ?? [];
-  if (calls.length === 0) return;
+  if (calls.length === 0 && j.Cancellation !== true) return;
   const line = String(j.LineRef ?? '').trim();
   const trainNumber = String(j.TrainNumbers?.TrainNumberRef ?? '').trim();
   if (!line || !trainNumber) return;
@@ -110,7 +110,9 @@ function storeJourneyRow(j, receivedAt) {
     } catch {}
   }
   const merged = mergeJourney(existing, j);
-  const { earliest, latest } = spanOfCalls(merged.EstimatedCalls?.EstimatedCall ?? []);
+  const mergedCalls = merged.EstimatedCalls?.EstimatedCall ?? [];
+  if (mergedCalls.length === 0) return;
+  const { earliest, latest } = spanOfCalls(mergedCalls);
   upsertJourney.run({
     line,
     train_number: trainNumber,

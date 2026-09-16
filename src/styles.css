@@ -262,6 +262,19 @@ button {
   margin-left: 4px;
 }
 
+.aflyst {
+  color: #d04040;
+  font-weight: 700;
+  font-size: 15px;
+}
+
+.row.cancelled .dest,
+.row.cancelled .track,
+.row.cancelled .time {
+  color: var(--muted);
+  text-decoration: line-through;
+}
+
 .time {
   color: var(--muted);
   font-weight: 500;

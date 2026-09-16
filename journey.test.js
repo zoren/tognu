@@ -86,6 +86,31 @@ test('delta with no stored journey is kept as-is', () => {
   assert.equal(mergeJourney(null, delta), delta);
 });
 
+test('journey-level cancellation without calls marks the stored journey', () => {
+  const cancel = {
+    LineRef: 'B',
+    FramedVehicleJourneyRef: { DataFrameRef: '2026-09-01', DatedVehicleJourneyRef: '622151-8602502602000' },
+    TrainNumbers: { TrainNumberRef: 622151 },
+    Cancellation: true,
+    IsCompleteStopSequence: false,
+  };
+  const merged = mergeJourney(fullJourney, cancel);
+  assert.equal(merged.Cancellation, true);
+  assert.equal(merged.EstimatedCalls.EstimatedCall.length, 3);
+});
+
+test('call-level cancellation merges onto the matching call only', () => {
+  const cancelCall = {
+    ...delta,
+    EstimatedCalls: { EstimatedCall: [{ StopPointRef: 8600645, Cancellation: true }] },
+  };
+  const calls = mergeJourney(fullJourney, cancelCall).EstimatedCalls.EstimatedCall;
+  assert.equal(calls[1].Cancellation, true);
+  assert.equal(calls[1].DeparturePlatformName, 3);
+  assert.equal(calls[0].Cancellation, undefined);
+  assert.equal(calls[2].Cancellation, undefined);
+});
+
 test('span is normalized to UTC and spans the merged calls', () => {
   const { earliest, latest } = spanOfCalls(mergeJourney(fullJourney, delta).EstimatedCalls.EstimatedCall);
   assert.equal(earliest, '2026-09-01T15:17:00.000Z');

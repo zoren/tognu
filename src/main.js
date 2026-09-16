@@ -9,6 +9,7 @@ import './styles.css';
  * @property {string} destination
  * @property {string|null} destinationStationId
  * @property {string|null} track
+ * @property {boolean} cancelled
  * @property {string} stationId
  */
 
@@ -193,7 +194,8 @@ function upcoming(list) {
   const counts = new Map();
   const out = [];
   for (const d of sorted) {
-    const key = d.destinationStationId || d.destination || '';
+    // Cancelled rows are capped separately so they don't hide running trains.
+    const key = (d.cancelled ? 'x:' : '') + (d.destinationStationId || d.destination || '');
     const n = counts.get(key) || 0;
     if (n >= 2) continue;
     counts.set(key, n + 1);
@@ -221,16 +223,23 @@ function renderRow(d) {
     : 0;
   return el(
     'li',
-    { class: 'row' },
+    { class: d.cancelled ? 'row cancelled' : 'row' },
     el('span', { class: `line line-${d.line}` }, d.line),
-    el(
-      'span',
-      { class: 'mins' },
-      String(minutes),
-      el('span', { class: 'secs' }, ':' + String(seconds).padStart(2, '0')),
-      delayMin > 0 ? el('span', { class: 'delay' }, ` +${delayMin}`) : null,
-      el('span', { class: 'time' }, formatClock(d)),
-    ),
+    d.cancelled
+      ? el(
+          'span',
+          { class: 'mins' },
+          el('span', { class: 'aflyst' }, 'Aflyst'),
+          el('span', { class: 'time' }, formatClock(d)),
+        )
+      : el(
+          'span',
+          { class: 'mins' },
+          String(minutes),
+          el('span', { class: 'secs' }, ':' + String(seconds).padStart(2, '0')),
+          delayMin > 0 ? el('span', { class: 'delay' }, ` +${delayMin}`) : null,
+          el('span', { class: 'time' }, formatClock(d)),
+        ),
     el('span', { class: 'dest' }, d.destination || '–'),
     el('span', { class: 'track' }, d.track ?? '–'),
   );

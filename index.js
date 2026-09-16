@@ -60,6 +60,7 @@ function projectDeparture(journey, call, stationMap) {
     destinationStationId:
       journey.DestinationRef != null ? String(journey.DestinationRef) : null,
     track: track != null ? String(track) : null,
+    cancelled: journey.Cancellation === true || call.Cancellation === true,
   };
 }
 
