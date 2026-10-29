@@ -392,7 +392,27 @@ buildShell();
 renderList();
 loadStations();
 reconnect();
-setInterval(() => {
+
+let ticker = 0;
+
+function tick() {
   now = Date.now();
   renderList();
-}, 1_000);
+}
+
+function startTicker() {
+  clearInterval(ticker);
+  ticker = setInterval(tick, 1_000);
+}
+
+startTicker();
+
+// iOS suspends timers and drops the SSE socket while the app is in the
+// background, and is slow to notice either on return. Re-render, restart the
+// ticker and reopen the stream as soon as we're visible again.
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState !== 'visible') return;
+  tick();
+  startTicker();
+  reconnect();
+});
