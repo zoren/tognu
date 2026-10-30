@@ -4,6 +4,7 @@ node_modules/
 dist/
 tognu.db
 tognu.db-*
+.claude/
 
 # Xcode (ios/)
 ios/Tognu.xcodeproj/
