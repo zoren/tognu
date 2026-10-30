@@ -1,0 +1,133 @@
+name: Tognu
+options:
+  bundleIdPrefix: dk.zoren.tognu
+  createIntermediateGroups: true
+  deploymentTarget:
+    iOS: "17.0"
+    watchOS: "10.0"
+  groupSortPosition: top
+
+settings:
+  base:
+    DEVELOPMENT_TEAM: P4J97SU7FX
+    SWIFT_VERSION: "5.9"
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    CODE_SIGN_STYLE: Automatic
+    DEVELOPMENT_TEAM: ""
+    GENERATE_INFOPLIST_FILE: NO
+    ENABLE_USER_SCRIPT_SANDBOXING: YES
+
+targets:
+  # ---- iOS app ---------------------------------------------------------------
+  Tognu:
+    type: application
+    platform: iOS
+    sources:
+      - Tognu/Sources
+      - Tognu/Assets.xcassets
+      - Shared/Sources
+      - path: Shared/Resources
+        buildPhase: resources
+    info:
+      path: Tognu/Info.plist
+      properties:
+        CFBundleDisplayName: Tognu
+        UILaunchScreen: {}
+        UIApplicationSupportsMultipleScenes: false
+        NSLocationWhenInUseUsageDescription: "Tognu uses your location to show departures from nearby stations."
+        NSLocationAlwaysAndWhenInUseUsageDescription: "Tognu watches for nearby favorite stations in the background so the Smart Stack and Dynamic Island can surface live departures."
+        UIBackgroundModes:
+          - location
+        NSSupportsLiveActivities: true
+    entitlements:
+      path: Tognu/Tognu.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.dk.zoren.tognu
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: dk.zoren.tognu
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        TARGETED_DEVICE_FAMILY: "1,2"
+        INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
+        INFOPLIST_KEY_UIRequiredDeviceCapabilities: armv7
+    dependencies:
+      - target: TognuWidget
+
+  # ---- iOS widget extension --------------------------------------------------
+  TognuWidget:
+    type: app-extension
+    platform: iOS
+    sources:
+      - TognuWidget/Sources
+      - Shared/Sources
+    info:
+      path: TognuWidget/Info.plist
+      properties:
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+    entitlements:
+      path: TognuWidget/TognuWidget.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.dk.zoren.tognu
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: dk.zoren.tognu.widget
+        TARGETED_DEVICE_FAMILY: "1,2"
+        SKIP_INSTALL: YES
+
+  # ---- watchOS independent app ----------------------------------------------
+  TognuWatch:
+    type: application
+    platform: watchOS
+    sources:
+      - TognuWatch/Sources
+      - TognuWatch/Assets.xcassets
+      - Shared/Sources
+      - path: Shared/Resources
+        buildPhase: resources
+    info:
+      path: TognuWatch/Info.plist
+      properties:
+        CFBundleDisplayName: Tognu
+        WKApplication: true
+        WKWatchOnly: false
+        NSLocationWhenInUseUsageDescription: "Tognu uses your location to show departures from nearby stations."
+    entitlements:
+      path: TognuWatch/TognuWatch.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.dk.zoren.tognu
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: dk.zoren.tognu.watchkitapp
+        TARGETED_DEVICE_FAMILY: "4"
+        WATCHOS_DEPLOYMENT_TARGET: "10.0"
+    dependencies:
+      - target: TognuWatchWidget
+
+  # ---- watchOS widget extension ---------------------------------------------
+  TognuWatchWidget:
+    type: app-extension
+    platform: watchOS
+    sources:
+      - TognuWatchWidget/Sources
+      - Shared/Sources
+    info:
+      path: TognuWatchWidget/Info.plist
+      properties:
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+    entitlements:
+      path: TognuWatchWidget/TognuWatchWidget.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.dk.zoren.tognu
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: dk.zoren.tognu.watchkitapp.widget
+        TARGETED_DEVICE_FAMILY: "4"
+        WATCHOS_DEPLOYMENT_TARGET: "10.0"
+        SKIP_INSTALL: YES
