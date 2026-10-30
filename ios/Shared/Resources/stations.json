@@ -1,0 +1,602 @@
+[
+  {
+    "id": "8600600",
+    "name": "Hvidovre",
+    "latitude": 55.66451,
+    "longitude": 12.474346
+  },
+  {
+    "id": "8600620",
+    "name": "Taastrup",
+    "latitude": 55.652546,
+    "longitude": 12.302135
+  },
+  {
+    "id": "8600621",
+    "name": "Albertslund",
+    "latitude": 55.65804,
+    "longitude": 12.353124
+  },
+  {
+    "id": "8600622",
+    "name": "Glostrup",
+    "latitude": 55.663148,
+    "longitude": 12.397827
+  },
+  {
+    "id": "8600624",
+    "name": "Valby",
+    "latitude": 55.663997,
+    "longitude": 12.51445
+  },
+  {
+    "id": "8600626",
+    "name": "København H",
+    "latitude": 55.673059,
+    "longitude": 12.565558
+  },
+  {
+    "id": "8600631",
+    "name": "Carlsberg",
+    "latitude": 55.663257,
+    "longitude": 12.537353
+  },
+  {
+    "id": "8600634",
+    "name": "Dybbølsbro",
+    "latitude": 55.664828,
+    "longitude": 12.559511
+  },
+  {
+    "id": "8600636",
+    "name": "Sorgenfri",
+    "latitude": 55.781255,
+    "longitude": 12.483542
+  },
+  {
+    "id": "8600640",
+    "name": "Fuglebakken",
+    "latitude": 55.695429,
+    "longitude": 12.527382
+  },
+  {
+    "id": "8600641",
+    "name": "Grøndal",
+    "latitude": 55.690738,
+    "longitude": 12.516007
+  },
+  {
+    "id": "8600642",
+    "name": "Nørrebro",
+    "latitude": 55.700847,
+    "longitude": 12.537806
+  },
+  {
+    "id": "8600644",
+    "name": "Ryparken",
+    "latitude": 55.715362,
+    "longitude": 12.559492
+  },
+  {
+    "id": "8600645",
+    "name": "Vesterport",
+    "latitude": 55.676011,
+    "longitude": 12.562087
+  },
+  {
+    "id": "8600646",
+    "name": "Nørreport",
+    "latitude": 55.683452,
+    "longitude": 12.571804
+  },
+  {
+    "id": "8600650",
+    "name": "Østerport",
+    "latitude": 55.692499,
+    "longitude": 12.587785
+  },
+  {
+    "id": "8600653",
+    "name": "Nordhavn",
+    "latitude": 55.705616,
+    "longitude": 12.590613
+  },
+  {
+    "id": "8600654",
+    "name": "Svanemøllen",
+    "latitude": 55.71555,
+    "longitude": 12.578049
+  },
+  {
+    "id": "8600655",
+    "name": "Hellerup",
+    "latitude": 55.731022,
+    "longitude": 12.567658
+  },
+  {
+    "id": "8600657",
+    "name": "Charlottenlund",
+    "latitude": 55.751851,
+    "longitude": 12.572144
+  },
+  {
+    "id": "8600658",
+    "name": "Ordrup",
+    "latitude": 55.76307,
+    "longitude": 12.583649
+  },
+  {
+    "id": "8600659",
+    "name": "Klampenborg",
+    "latitude": 55.777446,
+    "longitude": 12.58773
+  },
+  {
+    "id": "8600672",
+    "name": "Bernstorffsvej",
+    "latitude": 55.743052,
+    "longitude": 12.557488
+  },
+  {
+    "id": "8600673",
+    "name": "Gentofte",
+    "latitude": 55.753509,
+    "longitude": 12.54162
+  },
+  {
+    "id": "8600674",
+    "name": "Jægersborg",
+    "latitude": 55.761621,
+    "longitude": 12.521561
+  },
+  {
+    "id": "8600675",
+    "name": "Lyngby",
+    "latitude": 55.768084,
+    "longitude": 12.503101
+  },
+  {
+    "id": "8600676",
+    "name": "Virum",
+    "latitude": 55.795606,
+    "longitude": 12.473349
+  },
+  {
+    "id": "8600677",
+    "name": "Holte",
+    "latitude": 55.807675,
+    "longitude": 12.468821
+  },
+  {
+    "id": "8600678",
+    "name": "Birkerød",
+    "latitude": 55.840508,
+    "longitude": 12.424018
+  },
+  {
+    "id": "8600679",
+    "name": "Brøndbyøster",
+    "latitude": 55.665068,
+    "longitude": 12.440211
+  },
+  {
+    "id": "8600680",
+    "name": "Rødovre",
+    "latitude": 55.66482,
+    "longitude": 12.458641
+  },
+  {
+    "id": "8600681",
+    "name": "Allerød",
+    "latitude": 55.870983,
+    "longitude": 12.357045
+  },
+  {
+    "id": "8600683",
+    "name": "Hillerød",
+    "latitude": 55.926923,
+    "longitude": 12.310928
+  },
+  {
+    "id": "8600688",
+    "name": "Emdrup",
+    "latitude": 55.720887,
+    "longitude": 12.540687
+  },
+  {
+    "id": "8600689",
+    "name": "Vangede",
+    "latitude": 55.739658,
+    "longitude": 12.523342
+  },
+  {
+    "id": "8600690",
+    "name": "Buddinge",
+    "latitude": 55.747383,
+    "longitude": 12.494038
+  },
+  {
+    "id": "8600691",
+    "name": "Stengården",
+    "latitude": 55.756534,
+    "longitude": 12.473188
+  },
+  {
+    "id": "8600692",
+    "name": "Bagsværd",
+    "latitude": 55.761872,
+    "longitude": 12.453554
+  },
+  {
+    "id": "8600693",
+    "name": "Skovbrynet",
+    "latitude": 55.765173,
+    "longitude": 12.43203
+  },
+  {
+    "id": "8600694",
+    "name": "Hareskov",
+    "latitude": 55.766023,
+    "longitude": 12.406029
+  },
+  {
+    "id": "8600695",
+    "name": "Værløse",
+    "latitude": 55.782034,
+    "longitude": 12.373189
+  },
+  {
+    "id": "8600696",
+    "name": "Farum",
+    "latitude": 55.812027,
+    "longitude": 12.373534
+  },
+  {
+    "id": "8600700",
+    "name": "Favrholm",
+    "latitude": 55.910229,
+    "longitude": 12.315235
+  },
+  {
+    "id": "8600701",
+    "name": "Langgade",
+    "latitude": 55.66705,
+    "longitude": 12.504224
+  },
+  {
+    "id": "8600702",
+    "name": "Peter Bangs Vej",
+    "latitude": 55.67859,
+    "longitude": 12.503443
+  },
+  {
+    "id": "8600703",
+    "name": "Vanløse",
+    "latitude": 55.687355,
+    "longitude": 12.490603
+  },
+  {
+    "id": "8600704",
+    "name": "Islev",
+    "latitude": 55.699529,
+    "longitude": 12.469383
+  },
+  {
+    "id": "8600705",
+    "name": "Husum",
+    "latitude": 55.709409,
+    "longitude": 12.464033
+  },
+  {
+    "id": "8600706",
+    "name": "Herlev",
+    "latitude": 55.718919,
+    "longitude": 12.443674
+  },
+  {
+    "id": "8600707",
+    "name": "Skovlunde",
+    "latitude": 55.722763,
+    "longitude": 12.403533
+  },
+  {
+    "id": "8600708",
+    "name": "Ballerup",
+    "latitude": 55.729871,
+    "longitude": 12.358344
+  },
+  {
+    "id": "8600709",
+    "name": "Måløv",
+    "latitude": 55.747485,
+    "longitude": 12.318319
+  },
+  {
+    "id": "8600710",
+    "name": "Veksø",
+    "latitude": 55.750211,
+    "longitude": 12.238432
+  },
+  {
+    "id": "8600711",
+    "name": "Stenløse",
+    "latitude": 55.766379,
+    "longitude": 12.190608
+  },
+  {
+    "id": "8600712",
+    "name": "Ølstykke",
+    "latitude": 55.795641,
+    "longitude": 12.159712
+  },
+  {
+    "id": "8600713",
+    "name": "Vinge",
+    "latitude": 55.810333,
+    "longitude": 12.115244
+  },
+  {
+    "id": "8600714",
+    "name": "Frederikssund",
+    "latitude": 55.835809,
+    "longitude": 12.065636
+  },
+  {
+    "id": "8600734",
+    "name": "Jyllingevej",
+    "latitude": 55.69081,
+    "longitude": 12.477206
+  },
+  {
+    "id": "8600736",
+    "name": "Flintholm",
+    "latitude": 55.685435,
+    "longitude": 12.49866
+  },
+  {
+    "id": "8600739",
+    "name": "Bispebjerg",
+    "latitude": 55.706348,
+    "longitude": 12.541632
+  },
+  {
+    "id": "8600740",
+    "name": "KB Hallen",
+    "latitude": 55.677963,
+    "longitude": 12.492328
+  },
+  {
+    "id": "8600741",
+    "name": "Ålholm",
+    "latitude": 55.67233,
+    "longitude": 12.493114
+  },
+  {
+    "id": "8600742",
+    "name": "Danshøj",
+    "latitude": 55.664274,
+    "longitude": 12.493732
+  },
+  {
+    "id": "8600756",
+    "name": "Malmparken",
+    "latitude": 55.724632,
+    "longitude": 12.386028
+  },
+  {
+    "id": "8600760",
+    "name": "Sydhavn",
+    "latitude": 55.654756,
+    "longitude": 12.537174
+  },
+  {
+    "id": "8600761",
+    "name": "Sjælør",
+    "latitude": 55.651742,
+    "longitude": 12.527265
+  },
+  {
+    "id": "8600763",
+    "name": "Åmarken",
+    "latitude": 55.640079,
+    "longitude": 12.499699
+  },
+  {
+    "id": "8600764",
+    "name": "Friheden",
+    "latitude": 55.628887,
+    "longitude": 12.482553
+  },
+  {
+    "id": "8600765",
+    "name": "Avedøre",
+    "latitude": 55.625183,
+    "longitude": 12.454256
+  },
+  {
+    "id": "8600766",
+    "name": "Brøndby Strand",
+    "latitude": 55.620936,
+    "longitude": 12.42266
+  },
+  {
+    "id": "8600767",
+    "name": "Vallensbæk",
+    "latitude": 55.623253,
+    "longitude": 12.388444
+  },
+  {
+    "id": "8600768",
+    "name": "Ishøj",
+    "latitude": 55.613385,
+    "longitude": 12.357934
+  },
+  {
+    "id": "8600769",
+    "name": "Hundige",
+    "latitude": 55.597449,
+    "longitude": 12.333387
+  },
+  {
+    "id": "8600770",
+    "name": "Greve",
+    "latitude": 55.581217,
+    "longitude": 12.295599
+  },
+  {
+    "id": "8600771",
+    "name": "Karlslunde",
+    "latitude": 55.56629,
+    "longitude": 12.268851
+  },
+  {
+    "id": "8600780",
+    "name": "Dyssegård",
+    "latitude": 55.732629,
+    "longitude": 12.535743
+  },
+  {
+    "id": "8600781",
+    "name": "Kildebakke",
+    "latitude": 55.744614,
+    "longitude": 12.508535
+  },
+  {
+    "id": "8600783",
+    "name": "København Syd",
+    "latitude": 55.652626,
+    "longitude": 12.516849
+  },
+  {
+    "id": "8600790",
+    "name": "Solrød Strand",
+    "latitude": 55.533318,
+    "longitude": 12.218064
+  },
+  {
+    "id": "8600791",
+    "name": "Jersie",
+    "latitude": 55.520686,
+    "longitude": 12.208474
+  },
+  {
+    "id": "8600792",
+    "name": "Ølby",
+    "latitude": 55.479751,
+    "longitude": 12.175762
+  },
+  {
+    "id": "8600797",
+    "name": "Køge Nord",
+    "latitude": 55.49919,
+    "longitude": 12.173986
+  },
+  {
+    "id": "8600798",
+    "name": "Høje Taastrup",
+    "latitude": 55.648869,
+    "longitude": 12.269581
+  },
+  {
+    "id": "8600803",
+    "name": "Køge",
+    "latitude": 55.457547,
+    "longitude": 12.186333
+  },
+  {
+    "id": "8600804",
+    "name": "Vigerslev Alle",
+    "latitude": 55.659898,
+    "longitude": 12.498686
+  },
+  {
+    "id": "8600909",
+    "name": "Høvelte",
+    "latitude": 55.851051,
+    "longitude": 12.388137
+  },
+  {
+    "id": "8600955",
+    "name": "Kildedal",
+    "latitude": 55.751952,
+    "longitude": 12.286623
+  },
+  {
+    "id": "8600956",
+    "name": "Egedal",
+    "latitude": 55.779952,
+    "longitude": 12.185481
+  },
+  {
+    "id": "8650600",
+    "name": "Hvidovre St. (togbus)",
+    "latitude": 55.664712,
+    "longitude": 12.474188
+  },
+  {
+    "id": "8650736",
+    "name": "Flintholm St. (togbus)",
+    "latitude": 55.686151,
+    "longitude": 12.499074
+  },
+  {
+    "id": "8650740",
+    "name": "KB Hallen St. (togbus)",
+    "latitude": 55.678278,
+    "longitude": 12.493262
+  },
+  {
+    "id": "8650741",
+    "name": "Ålholm St. (togbus)",
+    "latitude": 55.672518,
+    "longitude": 12.49313
+  },
+  {
+    "id": "8650783",
+    "name": "Ny Ellebjerg St. (togbus)",
+    "latitude": 55.652477,
+    "longitude": 12.517614
+  },
+  {
+    "id": "8650804",
+    "name": "Vigerslev Alle St. (togbus)",
+    "latitude": 55.660038,
+    "longitude": 12.499127
+  },
+  {
+    "id": "8651600",
+    "name": "Hvidovre St. (togbus)",
+    "latitude": 55.664712,
+    "longitude": 12.474188
+  },
+  {
+    "id": "8651736",
+    "name": "Flintholm St. (togbus)",
+    "latitude": 55.686151,
+    "longitude": 12.499074
+  },
+  {
+    "id": "8651740",
+    "name": "KB Hallen St. (togbus)",
+    "latitude": 55.678065,
+    "longitude": 12.491588
+  },
+  {
+    "id": "8651741",
+    "name": "Ålholm St. (togbus)",
+    "latitude": 55.672419,
+    "longitude": 12.493471
+  },
+  {
+    "id": "8651783",
+    "name": "Ny Ellebjerg St. (togbus)",
+    "latitude": 55.652477,
+    "longitude": 12.517614
+  },
+  {
+    "id": "8651804",
+    "name": "Vigerslev Alle St. (togbus)",
+    "latitude": 55.659851,
+    "longitude": 12.498093
+  }
+]
